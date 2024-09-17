@@ -8,7 +8,7 @@ import seaborn as sns
 import yfinance as yf
 from scipy.stats import norm
 
-def getData(stocks, num_shares, start = "2010-01-01"):
+def getData(stocks, num_shares, start = "2014-01-01"):
     data = pd.DataFrame()
     for i in range(0, len(stocks)):
         data[i] = yf.download(stocks[i], start)['Adj Close'] * num_shares[i]
@@ -17,7 +17,7 @@ def getData(stocks, num_shares, start = "2010-01-01"):
     return result
 
 
-def computeReturns(data, iterations, days):
+def computeReturns(data, days, iterations=10000):
     log_return = np.log(1 + data.pct_change())
     mu = log_return.mean()
     var = log_return.var()
@@ -42,10 +42,28 @@ def computeReturns(data, iterations, days):
     avg_price = prices[-1].sum()/iterations
     percent_change = (avg_price - prices[0][0])/avg_price * 100
     avg_profit = (prices[-1] - prices[0]).sum()/iterations
-    
+    #sharpe_ratio = (percent_change - 5)/(x.std()/prices[0][0])
+    sharpe_ratio = x.std()/prices[0][0]
     print(f'Percent change: {percent_change}%')
     print(f'Average profit: ${avg_profit}')
     print(f'Average value: ${avg_price}')
+    print(f'Sharpe Ratio: {sharpe_ratio}')
+    
+
+
+
+    return x
+
+"""
+def stock_metrics_1(prices, iterations=10000):
+    avg_price = prices[-1].sum()/iterations
+    percent_change = (avg_price - prices[0][0])/avg_price * 100
+    avg_profit = (prices[-1] - prices[0]).sum()/iterations
+"""
+
+
+
+
 
 
 
@@ -63,14 +81,23 @@ with st.sidebar:
 
     conf = st.button("Confirm", use_container_width = True, type = "primary")
     
-        
+
+
+
 
 if(conf):
-    x = computeReturns(getData(stocks, shares), 10000, 365)
-    #fig = plt.figure(figsize=(15, 14))
+    data = computeReturns(getData(stocks, shares), 365)
+    bins = 30
+    counts, bin_edges = np.histogram(data, bins = bins)
 
-    sns.histplot(x, stat="density", kde=True)
 
-    st.pyplot(plt.gcf(), use_container_width = True)
 
+    hist_data = pd.DataFrame({
+        'Portfolio Value': np.round(bin_edges[:-1]),  # Start of each bin
+        'Probability': counts/10000
+    })
+    hist_data.set_index('Portfolio Value', inplace=True)
+    st.bar_chart(hist_data, x_label = "Portfolio Value", y = "Probability")
+
+    
     
